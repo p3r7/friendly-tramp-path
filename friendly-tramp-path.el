@@ -3,9 +3,8 @@
 ;; Copyright (C) 2019-2020 Jordan Besly
 ;;
 ;; Version: 0.1.0
-;; Keywords: tramp, rx
 ;; URL: https://github.com/p3r7/prf-tramp
-;; Package-Requires: ((dash "2.16.0")(s "1.11.0"))
+;; Package-Requires: ((emacs "24.1")(dash "2.16.0")(s "1.11.0"))
 ;;
 ;; Permission is hereby granted, free of charge, to any person obtaining a copy
 ;; of this software and associated documentation files (the "Software"), to deal
@@ -54,39 +53,45 @@
     ,tramp-prefix-format
     (group (one-or-more (any "a-z" "A-Z" "0-9")))
     ;; (group ,tramp-method-regexp)
-    ,tramp-postfix-method-format))
+    ,tramp-postfix-method-format)
+  "Pattern for extracting the method part at the begining of a TRAMP path.")
 
 (defconst friendly-tramp-path--rx-user-no-postfix
-  `(
-    (group (one-or-more (any "a-z" "A-Z" "0-9" ".")))
+  `((group (one-or-more (any "a-z" "A-Z" "0-9" ".")))
     ;; (group ,tramp-user-regexp)
-    ))
+    )
+  "Pattern for extracting the user part in a TRAMP path, without end delimiter.")
 
 (defconst friendly-tramp-path--rx-user
   `(
     (group (one-or-more (any "a-z" "A-Z" "0-9" ".")))
     ;; (group ,tramp-user-regexp)
-    ,tramp-postfix-user-format))
+    ,tramp-postfix-user-format)
+  "Pattern for extracting the user part in a TRAMP path.")
 
 (defconst friendly-tramp-path--rx-domain
   `(,tramp-prefix-domain-regexp
-    (group ,tramp-domain-regexp)))
+    (group ,tramp-domain-regexp))
+  "Pattern for extracting the domain part in a TRAMP path.")
 
 (defconst friendly-tramp-path--rx-host
   `(
     (group (one-or-more (any "a-z" "A-Z" "0-9" "." "-")))
     ;; (group ,tramp-host-regexp)
-    (zero-or-more ,tramp-postfix-host-format)))
+    (zero-or-more ,tramp-postfix-host-format))
+  "Pattern for extracting the host part in a TRAMP path.")
 
 (defconst friendly-tramp-path--rx-port
   `(,tramp-prefix-port-format
-    (group ,tramp-port-regexp)))
+    (group ,tramp-port-regexp))
+  "Pattern for extracting the port part in a TRAMP path.")
 
 (defconst friendly-tramp-path--rx-localname
   `(
     (group (zero-or-more anything))
-    (group ,tramp-localname-regexp)
-    ))
+    ;; (group ,tramp-localname-regexp)
+    )
+  "Pattern for extracting the localname part in a TRAMP path.")
 
 
 
@@ -95,79 +100,106 @@
 ;; REVIEW: Doing this might induces a performance penalty but this makes things reusable.
 
 (defun friendly-tramp-path--rx (args)
-  "Call `rx' with list ARGS."
+  "Call `rx' with list ARGS.
+This allows calling `rx' with patterns built programatically."
   ;; NB: We're using `eval' instead of `apply' as `rx' is a macro.
   (eval (cons #'rx args)))
+
+(defun friendly-tramp-path--match-rx-p (str rx-args)
+  "Return t if STR match RX-ARGS."
+  (string-match (friendly-tramp-path--rx rx-args)
+                str))
+
+(defun friendly-tramp-path--match-rx (str rx-args pos)
+  "Extract group at group POS from string STR matching RX-ARGS."
+  (when
+      (friendly-tramp-path--match-rx-p str rx-args)
+    (match-string pos str)))
 
 
 
 ;; UTILS: PERMISSIVE TRAMP PATH DISSECT
 
 (defun friendly-tramp-path-method (path)
+  "Extract method part from friendly PATH."
   ;; /METHOD:*
-  (when (string-match (friendly-tramp-path--rx friendly-tramp-path--rx-method)
-                      path)
-    (match-string 1 path)))
+  (friendly-tramp-path--match-rx path friendly-tramp-path--rx-method 1))
 
 (defun friendly-tramp-path-user (path)
-  ;; /METHOD:USER%DOMAIN@*
-  (if (string-match (friendly-tramp-path--rx (-concat friendly-tramp-path--rx-method
-                                                      friendly-tramp-path--rx-user-no-postfix
-                                                      friendly-tramp-path--rx-domain
-                                                      `(,tramp-postfix-user-format)))
-                    path)
-      (match-string 2 path)
-    ;; /METHOD:USER@*
-    (if (string-match (friendly-tramp-path--rx (-concat friendly-tramp-path--rx-method
-                                                        friendly-tramp-path--rx-user))
-                      path)
-        (match-string 2 path)
-      ;; USER@*
-      (when (string-match (friendly-tramp-path--rx (-concat '(line-start)
-                                                            friendly-tramp-path--rx-user))
-                          path)
-        (match-string 1 path)))))
+  "Extract user part from friendly PATH."
+  (cond
+   ;; /METHOD:USER%DOMAIN@*
+   ((friendly-tramp-path--match-rx-p path
+                                     (-concat friendly-tramp-path--rx-method
+                                              friendly-tramp-path--rx-user-no-postfix
+                                              friendly-tramp-path--rx-domain
+                                              `(,tramp-postfix-user-format)))
+    (match-string 2 path))
+   ;; /METHOD:USER@*
+   ((friendly-tramp-path--match-rx-p path
+                                     (-concat friendly-tramp-path--rx-method
+                                              friendly-tramp-path--rx-user))
+    (match-string 2 path))
+   ;; USER@*
+   ((friendly-tramp-path--match-rx-p path
+                                     (-concat '(line-start)
+                                              friendly-tramp-path--rx-user))
+    (match-string 1 path))))
 
 (defun friendly-tramp-path-host (path)
+  "Extract host part from friendly PATH."
   ;; *@*
   (if (s-contains? tramp-postfix-user-format path)
       ;; *USER@HOST[:*]
-      (when (string-match (friendly-tramp-path--rx (-concat friendly-tramp-path--rx-user
-                                                            friendly-tramp-path--rx-host))
-                          path)
-        (match-string 2 path))
+      (friendly-tramp-path--match-rx path
+                                     (-concat friendly-tramp-path--rx-user
+                                              friendly-tramp-path--rx-host)
+                                     2)
     (cond
      ;; /METHOD:HOST[:*]
-     ((string-match (friendly-tramp-path--rx (-concat friendly-tramp-path--rx-method
-                                                      friendly-tramp-path--rx-host))
-                    path)
+     ((friendly-tramp-path--match-rx-p path
+                                       (-concat friendly-tramp-path--rx-method
+                                                friendly-tramp-path--rx-host))
       (match-string 2 path))
-     ;; HOST
-     ((string-match (friendly-tramp-path--rx (-concat '(line-start)
-                                                      friendly-tramp-path--rx-host
-                                                      '(eol)))
-                    path)
+     ;; HOST:*
+     ((friendly-tramp-path--match-rx-p path
+                                       (-concat '(line-start)
+                                                friendly-tramp-path--rx-host
+                                                friendly-tramp-path--rx-localname))
       (match-string 1 path))
-     ;; TODO: HOST:* ?
-     )))
+     ;; HOST[:]
+     ((friendly-tramp-path--match-rx-p path
+                                       (-concat '(line-start)
+                                                friendly-tramp-path--rx-host
+                                                '(eol)))
+      (match-string 1 path)))))
 
 (defun friendly-tramp-path-localname (path)
-  ;; /METHOD:USER@HOST:LOCALNAME, i.e. 2 : in the path
-  (if (string-match (friendly-tramp-path--rx (-concat friendly-tramp-path--rx-method
+  "Extract localname part from friendly PATH."
+  (let (localname)
+    (setq localname
+          (cond
+           ;; /METHOD:USER@HOST:LOCALNAME (i.e. 2 ":" in the path)
+           ((friendly-tramp-path--match-rx-p path
+                                             (-concat friendly-tramp-path--rx-method
                                                       friendly-tramp-path--rx-user
                                                       friendly-tramp-path--rx-host
                                                       friendly-tramp-path--rx-localname))
-                    path)
-      (match-string 4 path)
-    (when (string-match (friendly-tramp-path--rx (-concat '((one-or-more anything))
-                                                          `(,tramp-postfix-host-format)
-                                                          friendly-tramp-path--rx-localname))
-                        path)
-      (match-string 1 path))))
+            (match-string 4 path))
+           ;; [USER@]HOST:LOCALNAME
+           ((friendly-tramp-path--match-rx-p path
+                                             (-concat `((one-or-more anything))
+                                                      `(,tramp-postfix-host-format)
+                                                      friendly-tramp-path--rx-localname))
+            (match-string 1 path))))
+    (if (and (stringp localname)
+             (eq (length localname) 0))
+        nil
+      localname)))
 
 (defun friendly-tramp-path-disect (path)
-  "More permissive version of `tramp-dissect-file-name'.
-Return a VEC.
+  "Convert PATH into a TRAMP VEC.
+More permissive version of `tramp-dissect-file-name'.
 Accepts input from `prf/tramp/remote-shell'."
   (if (file-remote-p path)
       (tramp-dissect-file-name path)
@@ -188,4 +220,4 @@ Accepts input from `prf/tramp/remote-shell'."
 
 (provide 'friendly-tramp-path)
 
-;;; friendly-tramp-path.el ends here.
+;;; friendly-tramp-path.el ends here
