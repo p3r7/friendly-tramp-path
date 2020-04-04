@@ -48,6 +48,114 @@
 
 ;; CONSTANTS: PERMISSIVE TRAMP PATH DISSECT
 
+(defconst friendly-tramp-path--keyword-regexps
+  `(("method" . (group (one-or-more (any "a-z" "A-Z" "0-9"))))
+    ("user" . (group (one-or-more (any "a-z" "A-Z" "0-9" "." "-" "_"))))
+    ("domain" . (group (one-or-more (any "a-z" "A-Z" "0-9" "." "-" "_"))))
+    ("host" . (group (one-or-more (any "a-z" "A-Z" "0-9" "." "-" "_"))))
+    ("port" . (group (one-or-more digit)))
+    ("localname" . (group (one-or-more anything)))))
+
+(defconst friendly-tramp-path--test-paths
+  '(("/method:user%domain@host#123:/"
+     . (
+        :method "method"
+        :user "user" :domain "domain"
+        :host "host" :port "123"
+        :localname "/"))
+    ("/method:user%domain@host:/"
+     . (
+        :method "method"
+        :user "user" :domain "domain"
+        :host "host" :port nil
+        :localname "/"))
+    ("/method:user@host:/"
+     . (
+        :method "method"
+        :user "user" :domain nil
+        :host "host" :port nil
+        :localname "/"))
+    ("/method:user%domain@host:"
+     . (
+        :method "method"
+        :user "user" :domain "domain"
+        :host "host" :port nil
+        :localname nil))
+    ("/method:user@host:"
+     . (
+        :method "method"
+        :user "user" :domain nil
+        :host "host" :port nil
+        :localname nil))
+    ("/method:user%domain@host"
+     . (
+        :method "method"
+        :user "user" :domain "domain"
+        :host "host" :port nil
+        :localname nil))
+    ("/method:user@host"
+     . (
+        :method "method"
+        :user "user" :domain nil
+        :host "host" :port nil
+        :localname nil))
+    ("user%domain@host:/"
+     . (
+        :method nil
+        :user "user" :domain "domain"
+        :host "host" :port nil
+        :localname "/"))
+    ("user@host:/"
+     . (
+        :method nil
+        :user "user" :domain nil
+        :host "host" :port nil
+        :localname "/"))
+    ("user%domain@host:"
+     . (
+        :method nil
+        :user "user" :domain "domain"
+        :host "host" :port nil
+        :localname nil))
+    ("user@host:"
+     . (
+        :method nil
+        :user "user" :domain nil
+        :host "host" :port nil
+        :localname nil))
+    ("user%domain@host"
+     . (
+        :method nil
+        :user "user" :domain "domain"
+        :host "host" :port nil
+        :localname nil))
+    ("user@host"
+     . (
+        :method nil
+        :user "user" :domain nil
+        :host "host" :port nil
+        :localname nil))
+    ("host:/"
+     . (
+        :method nil
+        :user nil :domain nil
+        :host "host" :port nil
+        :localname "/"))
+    ("host:"
+     . (
+        :method nil
+        :user nil :domain nil
+        :host "host" :port nil
+        :localname nil))
+    ("host"
+     . (
+        :method nil
+        :user nil :domain nil
+        :host "host" :port nil
+        :localname nil)))
+  "Alist of paths VS parsed values used for tests.")
+
+
 (defconst friendly-tramp-path--rx-method
   `(line-start
     ,tramp-prefix-format
@@ -70,13 +178,16 @@
   "Pattern for extracting the user part in a TRAMP path.")
 
 (defconst friendly-tramp-path--rx-domain
-  `(,tramp-prefix-domain-regexp
-    (group ,tramp-domain-regexp))
+  `(
+    (group
+     ;; ,tramp-prefix-domain-regexp
+     (one-or-more (any "a-z" "A-Z" "0-9" "." "-")))
+    ;; (group ,tramp-host-regexp)
+    (zero-or-more ,tramp-postfix-user-format))
   "Pattern for extracting the domain part in a TRAMP path.")
 
 (defconst friendly-tramp-path--rx-host
-  `(
-    (group (one-or-more (any "a-z" "A-Z" "0-9" "." "-")))
+  `((group (one-or-more (any "a-z" "A-Z" "0-9" "." "-")))
     ;; (group ,tramp-host-regexp)
     (zero-or-more ,tramp-postfix-host-format))
   "Pattern for extracting the host part in a TRAMP path.")
@@ -92,6 +203,16 @@
     ;; (group ,tramp-localname-regexp)
     )
   "Pattern for extracting the localname part in a TRAMP path.")
+
+
+
+;; UTILS: LIST MANIPULATION
+
+;; TODO: rewrite with cl-lib to "break" on first found
+(defun friendly-tramp-path--keep-first (fn list)
+  "Keep the first element from LIST for which FN is non-nil."
+  (car
+   (-keep fn list)))
 
 
 
@@ -116,6 +237,16 @@ This allows calling `rx' with patterns built programatically."
       (friendly-tramp-path--match-rx-p str rx-args)
     (match-string pos str)))
 
+(defun friendly-tramp-path--keep-first-matched-rx (path extractors)
+  "Return first non-nil extracted value got from applyin EXTRACTORS on PATH."
+  (let ((extract-fn
+         (lambda (e)
+           (let* ((rx-pattern-raw (car e))
+                  (rx-pattern (apply #'-concat rx-pattern-raw))
+                  (index (cdr e)))
+             (friendly-tramp-path--match-rx path rx-pattern index)))))
+    (friendly-tramp-path--keep-first extract-fn extractors)))
+
 
 
 ;; UTILS: PERMISSIVE TRAMP PATH DISSECT
@@ -127,24 +258,21 @@ This allows calling `rx' with patterns built programatically."
 
 (defun friendly-tramp-path-user (path)
   "Extract user part from friendly PATH."
-  (cond
-   ;; /METHOD:USER%DOMAIN@*
-   ((friendly-tramp-path--match-rx-p path
-                                     (-concat friendly-tramp-path--rx-method
-                                              friendly-tramp-path--rx-user-no-postfix
-                                              friendly-tramp-path--rx-domain
-                                              `(,tramp-postfix-user-format)))
-    (match-string 2 path))
-   ;; /METHOD:USER@*
-   ((friendly-tramp-path--match-rx-p path
-                                     (-concat friendly-tramp-path--rx-method
-                                              friendly-tramp-path--rx-user))
-    (match-string 2 path))
-   ;; USER@*
-   ((friendly-tramp-path--match-rx-p path
-                                     (-concat '(line-start)
-                                              friendly-tramp-path--rx-user))
-    (match-string 1 path))))
+  (friendly-tramp-path--keep-first-matched-rx
+   path
+   `(;; /METHOD:USER%DOMAIN@*
+     ((,friendly-tramp-path--rx-method
+       ,friendly-tramp-path--rx-user-no-postfix
+       (,tramp-prefix-domain-regexp))
+      . 2)
+     ;; /METHOD:USER@*
+     ((,friendly-tramp-path--rx-method
+       ,friendly-tramp-path--rx-user)
+      . 2)
+     ;; USER@*
+     (((line-start)
+       ,friendly-tramp-path--rx-user)
+      . 1))))
 
 (defun friendly-tramp-path-host (path)
   "Extract host part from friendly PATH."
@@ -174,24 +302,41 @@ This allows calling `rx' with patterns built programatically."
                                                 '(eol)))
       (match-string 1 path)))))
 
+(defun friendly-tramp-path-domain (path)
+  "Extract domain part from friendly PATH."
+  (friendly-tramp-path--keep-first-matched-rx
+   path
+   `(;; *%DOMAIN:
+     ((,friendly-tramp-path--rx-host
+       ,friendly-tramp-path--rx-domain)
+      . 2))))
+
 (defun friendly-tramp-path-localname (path)
   "Extract localname part from friendly PATH."
   (let (localname)
     (setq localname
-          (cond
-           ;; /METHOD:USER@HOST:LOCALNAME (i.e. 2 ":" in the path)
-           ((friendly-tramp-path--match-rx-p path
-                                             (-concat friendly-tramp-path--rx-method
-                                                      friendly-tramp-path--rx-user
-                                                      friendly-tramp-path--rx-host
-                                                      friendly-tramp-path--rx-localname))
-            (match-string 4 path))
-           ;; [USER@]HOST:LOCALNAME
-           ((friendly-tramp-path--match-rx-p path
-                                             (-concat `((one-or-more anything))
-                                                      `(,tramp-postfix-host-format)
-                                                      friendly-tramp-path--rx-localname))
-            (match-string 1 path))))
+          (friendly-tramp-path--keep-first-matched-rx
+           path
+           `(;; /METHOD:USER%DOMAIN@HOST:LOCALNAME (i.e. 2 ":" in the path)
+             ((,friendly-tramp-path--rx-method
+               ,friendly-tramp-path--rx-user-no-postfix
+               (,tramp-prefix-domain-regexp)
+               ,friendly-tramp-path--rx-domain
+               ,friendly-tramp-path--rx-host
+               ,friendly-tramp-path--rx-localname)
+              . 5)
+             ;; /METHOD:USER@HOST:LOCALNAME (i.e. 2 ":" in the path)
+             ((,friendly-tramp-path--rx-method
+               ,friendly-tramp-path--rx-user
+               ,friendly-tramp-path--rx-host
+               ,friendly-tramp-path--rx-localname)
+              . 4)
+             ;; [USER@]HOST:LOCALNAME
+             ((
+               ((one-or-more anything))
+               (,tramp-postfix-host-format)
+               ,friendly-tramp-path--rx-localname)
+              . 1))))
     (if (and (stringp localname)
              (eq (length localname) 0))
         nil

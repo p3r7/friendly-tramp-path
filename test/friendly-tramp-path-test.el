@@ -5,22 +5,6 @@
 
 
 
-;; DATA SET
-
-(defconst friendly-tramp-path--test-paths
-  '(("/method:user@host:/" . (:method "method" :user "user" :host "host" :localname "/"))
-    ("/method:user@host:" . (:method "method" :user "user" :host "host" :localname nil))
-    ("/method:user@host" . (:method "method" :user "user" :host "host" :localname nil))
-    ("user@host:/" . (:method nil :user "user" :host "host" :localname "/"))
-    ("user@host:" . (:method nil :user "user" :host "host" :localname nil))
-    ("user@host" . (:method nil :user "user" :host "host" :localname nil))
-    ("host:/" . (:method nil :user nil :host "host" :localname "/"))
-    ("host:" . (:method nil :user nil :host "host" :localname nil))
-    ("host" . (:method nil :user nil :host "host" :localname nil)))
-  "Alist of paths VS parsed values used for tests.")
-
-
-
 ;; TESTS
 
 (ert-deftest prf-tramp-get-method-from-path-test ()
