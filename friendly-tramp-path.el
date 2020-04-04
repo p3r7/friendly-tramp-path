@@ -4,7 +4,7 @@
 ;;
 ;; Version: 0.1.0
 ;; URL: https://github.com/p3r7/prf-tramp
-;; Package-Requires: ((emacs "24.1")(dash "2.16.0")(s "1.11.0"))
+;; Package-Requires: ((emacs "24.1")(cl-lib "0.6.1")(dash "2.16.0")(s "1.11.0"))
 ;;
 ;; Permission is hereby granted, free of charge, to any person obtaining a copy
 ;; of this software and associated documentation files (the "Software"), to deal
@@ -41,6 +41,7 @@
 (require 'tramp)
 (require 'tramp-sh)
 
+(require 'cl-lib)
 (require 'dash)
 (require 's)
 
@@ -208,11 +209,16 @@
 
 ;; UTILS: LIST MANIPULATION
 
-;; TODO: rewrite with cl-lib to "break" on first found
 (defun friendly-tramp-path--keep-first (fn list)
   "Keep the first element from LIST for which FN is non-nil."
   (car
-   (-keep fn list)))
+   (cl-loop
+    with res = nil
+    for e in list
+    until res
+    do (setq res (funcall fn e))
+    if res
+    collect res)))
 
 
 
