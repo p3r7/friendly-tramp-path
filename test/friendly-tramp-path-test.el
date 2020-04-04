@@ -5,6 +5,109 @@
 
 
 
+;; DATA SET
+
+(defconst friendly-tramp-path--test-paths
+  '(("/method:user%domain@host#123:/"
+     . (
+        :method "method"
+        :user "user" :domain "domain"
+        :host "host" :port "123"
+        :localname "/"))
+    ("/method:user%domain@host:/"
+     . (
+        :method "method"
+        :user "user" :domain "domain"
+        :host "host" :port nil
+        :localname "/"))
+    ("/method:user@host:/"
+     . (
+        :method "method"
+        :user "user" :domain nil
+        :host "host" :port nil
+        :localname "/"))
+    ("/method:user%domain@host:"
+     . (
+        :method "method"
+        :user "user" :domain "domain"
+        :host "host" :port nil
+        :localname nil))
+    ("/method:user@host:"
+     . (
+        :method "method"
+        :user "user" :domain nil
+        :host "host" :port nil
+        :localname nil))
+    ("/method:user%domain@host"
+     . (
+        :method "method"
+        :user "user" :domain "domain"
+        :host "host" :port nil
+        :localname nil))
+    ("/method:user@host"
+     . (
+        :method "method"
+        :user "user" :domain nil
+        :host "host" :port nil
+        :localname nil))
+    ("user%domain@host:/"
+     . (
+        :method nil
+        :user "user" :domain "domain"
+        :host "host" :port nil
+        :localname "/"))
+    ("user@host:/"
+     . (
+        :method nil
+        :user "user" :domain nil
+        :host "host" :port nil
+        :localname "/"))
+    ("user%domain@host:"
+     . (
+        :method nil
+        :user "user" :domain "domain"
+        :host "host" :port nil
+        :localname nil))
+    ("user@host:"
+     . (
+        :method nil
+        :user "user" :domain nil
+        :host "host" :port nil
+        :localname nil))
+    ("user%domain@host"
+     . (
+        :method nil
+        :user "user" :domain "domain"
+        :host "host" :port nil
+        :localname nil))
+    ("user@host"
+     . (
+        :method nil
+        :user "user" :domain nil
+        :host "host" :port nil
+        :localname nil))
+    ("host:/"
+     . (
+        :method nil
+        :user nil :domain nil
+        :host "host" :port nil
+        :localname "/"))
+    ("host:"
+     . (
+        :method nil
+        :user nil :domain nil
+        :host "host" :port nil
+        :localname nil))
+    ("host"
+     . (
+        :method nil
+        :user nil :domain nil
+        :host "host" :port nil
+        :localname nil)))
+  "Alist of paths VS parsed values used for tests.")
+
+
+
 ;; TESTS
 
 (ert-deftest prf-tramp-get-method-from-path-test ()
