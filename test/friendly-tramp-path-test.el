@@ -127,6 +127,14 @@
                     (string= (friendly-tramp-path-user ,path) ,expected)))))
         friendly-tramp-path--test-paths))
 
+(ert-deftest prf-tramp-get-domain-from-path-test ()
+  "Ensure host gets correctly extracted from pseudo-tramp path."
+  (mapc (lambda (item)
+          (let ((path (car item))
+                (expected (plist-get (cdr item) :domain)))
+            (eval `(should (string= (prf/tramp/get-host-port-path ,path) ,expected)))))
+        friendly-tramp-path--test-paths))
+
 (ert-deftest prf-tramp-get-host-from-path-test ()
   "Ensure host gets correctly extracted from pseudo-tramp path."
   (mapc (lambda (item)
@@ -135,13 +143,13 @@
             (eval `(should (string= (friendly-tramp-path-host ,path) ,expected)))))
         friendly-tramp-path--test-paths))
 
-;; (ert-deftest prf-tramp-get-port-from-path-test ()
-;;   "Ensure host gets correctly extracted from pseudo-tramp path."
-;;   (mapc (lambda (item)
-;;           (let ((path (car item))
-;;                 (expected (plist-get (cdr item) :port)))
-;;             (eval `(should (string= (prf/tramp/get-host-port-path ,path) ,expected)))))
-;;         friendly-tramp-path--test-paths))
+(ert-deftest prf-tramp-get-port-from-path-test ()
+  "Ensure host gets correctly extracted from pseudo-tramp path."
+  (mapc (lambda (item)
+          (let ((path (car item))
+                (expected (plist-get (cdr item) :port)))
+            (eval `(should (string= (prf/tramp/get-host-port-path ,path) ,expected)))))
+        friendly-tramp-path--test-paths))
 
 (ert-deftest prf-tramp-get-localname-from-path-test ()
   "Ensure localname gets correctly extracted from pseudo-tramp path."
