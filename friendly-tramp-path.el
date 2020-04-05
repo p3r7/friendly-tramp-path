@@ -47,8 +47,7 @@
 
 (defun friendly-tramp-path-disect (path)
   "Convert PATH into a TRAMP VEC.
-More permissive version of `tramp-dissect-file-name'.
-Accepts input from `prf/tramp/remote-shell'."
+More permissive version of `tramp-dissect-file-name'."
   (if (file-remote-p path)
       (tramp-dissect-file-name path)
     (let* ((parsed (friendly-tramp-path--parse-char-loop path))
