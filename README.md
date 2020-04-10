@@ -26,6 +26,13 @@ To require everything:
 
 ## Example usage
 
+Convert a path in permissive format to a TRAMP VEC:
+
+```el
+(let* ((path "pi@raspberry:/home/pi/"))
+    (friendly-tramp-path-disect vec))
+```
+
 Convert a path in permissive format back into regular TRAMP format:
 
 ```el
