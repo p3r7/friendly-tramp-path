@@ -1,4 +1,4 @@
-# friendly-tramp-path
+# friendly-tramp-path [![MELPA](https://melpa.org/packages/friendly-tramp-path-badge.svg)](https://melpa.org/#/friendly-tramp-path)
 
 An Emacs package that allows a more permissive syntax for TRAMP paths.
 
@@ -12,17 +12,21 @@ It provides function `friendly-tramp-path-dissect` that is a drop-in replacement
 
 ## Installation
 
-Not yet on [Melpa](https://melpa.org/).
+The package is available on [Melpa](https://melpa.org/).
 
-For now, the recommended way to install is with [use-package](https://github.com/jwiegley/use-package), [quelpa](https://github.com/quelpa/quelpa) and [quelpa-use-package](https://github.com/quelpa/quelpa-use-package).
-
-To require everything:
+With `use-package`:
 
 ```el
 (use-package friendly-tramp-path
-  :quelpa (friendly-tramp-path :fetcher github :repo "p3r7/friendly-tramp-path"
-  :after tramp))
+  :after tramp
+  ;; ...
+  )
 ```
+
+Manually:
+
+    M-x package-install friendly-tramp-path
+
 
 ## Example usage
 
