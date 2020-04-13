@@ -1,4 +1,4 @@
-;;; friendly-tramp-path.el --- Human-friendly TRAMP path contruction
+;;; friendly-tramp-path.el --- Human-friendly TRAMP path construction
 
 ;; Copyright (C) 2019-2020 Jordan Besly
 ;;
@@ -52,7 +52,7 @@
 
 ;; COMPLETE PARSING
 
-(defun friendly-tramp-path-disect (path)
+(defun friendly-tramp-path-dissect (path)
   "Convert PATH into a TRAMP VEC.
 More permissive version of `tramp-dissect-file-name'."
   (if (file-remote-p path)
@@ -116,7 +116,7 @@ More permissive version of `tramp-dissect-file-name'."
 ;; UTILS: TRAMP PATH PARSING
 
 (defun friendly-tramp-path--parse-char-loop (path)
-  "Parse PATH ans return a list of TRAMP components."
+  "Parse PATH and return a list of TRAMP components."
   (let (method user domain host port localname)
     (cl-loop
 
