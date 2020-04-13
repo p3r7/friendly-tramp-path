@@ -30,14 +30,14 @@ Convert a path in permissive format to a TRAMP VEC:
 
 ```el
 (let* ((path "pi@raspberry:/home/pi/"))
-    (friendly-tramp-path-disect vec))
+    (friendly-tramp-path-dissect vec))
 ```
 
 Convert a path in permissive format back into regular TRAMP format:
 
 ```el
 (let* ((path "pi@raspberry:/home/pi/")
-       (vec (friendly-tramp-path-disect vec))
+       (vec (friendly-tramp-path-dissect vec))
        (method (tramp-file-name-method vec))
        (user (tramp-file-name-user vec))
        (domain (tramp-file-name-domain vec))
