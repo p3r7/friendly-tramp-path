@@ -18,9 +18,7 @@ With `use-package`:
 
 ```el
 (use-package friendly-tramp-path
-  :after tramp
-  ;; ...
-  )
+  :after tramp)
 ```
 
 Manually:
