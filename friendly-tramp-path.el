@@ -54,7 +54,12 @@
 
 (defun friendly-tramp-path-dissect (path)
   "Convert PATH into a TRAMP VEC.
-More permissive version of `tramp-dissect-file-name'."
+More permissive version of `tramp-dissect-file-name'.
+
+PATH can be in on of the following formats:
+ - \"/<method>:[<user>[%<domain>]@]<host>[%<port>][:<localname>]\" (regular TRAMP format)
+ - \"[<user>[%<domain>]@]<host>[%<port>][:<localname>]\" (permissive format)
+"
   (if (file-remote-p path)
       (tramp-dissect-file-name path)
     (let* ((parsed (friendly-tramp-path--parse-char-loop path))
