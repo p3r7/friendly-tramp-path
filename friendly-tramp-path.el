@@ -1,4 +1,4 @@
-;;; friendly-tramp-path.el --- Human-friendly TRAMP path construction
+;;; friendly-tramp-path.el --- Human-friendly TRAMP path construction -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2019-2020 Jordan Besly
 ;;
@@ -123,7 +123,6 @@ More permissive version of `tramp-dissect-file-name'."
      with last-at = nil
      with at = :first
      with current = nil
-     with got-method = nil
 
      for e in (delete "" (split-string path ""))
 
@@ -131,8 +130,7 @@ More permissive version of `tramp-dissect-file-name'."
      do
      (setq last-at :first)
      (if (string= e "/")
-         (setq at :method
-               got-method 't)
+         (setq at :method)
        (setq at nil))
 
      if (string= e "%")
